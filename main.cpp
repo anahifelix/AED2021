@@ -1,78 +1,125 @@
+// ANAHI FELIX
+
 #include <iostream>
+#include <fstream>
+#include <iomanip>
+#include "listascomp.hpp"
+#include "listasordc.hpp"
+#include "rwstring.hpp"
+
 using namespace std;
 
-void revertir (int v[], int dim);
-void mostrarvec(int vec[], int dim);
-void mostrarmat(int m[][5], int dfil);
-void mtranspuesta (int m[][5], int filas);
+struct Registro {
+    int id;
+    string cliente;
+    string producto;
+    float valor;
+};
 
-int main()
-{
-    const int dim5 {5};
-    const int dim10 {10};
+struct Despacho {
+    string cliente;
+    int bulto;
+    int valor;
+};
 
-    int vec5[dim5] {4, 11, 19, 8, 3};
-    int vec10[dim10] {23, 15, 1, 7, 6, 27, 2, 14, 12, 9};
+const int dcliente = 12;
+const int dproducto = 10;
 
-    int matriz[dim5][dim5] {36, 7, 19, 28, 45,
-                            17, 33, 42, 3, 25,
-                            22, 41, 32, 11, 9,
-                            39, 47, 14, 4, 23,
-                            16, 38, 8, 27, 44};
+fstream &operator >>(fstream &fs, Registro &r){
+    fs.read (reinterpret_cast<char *>(&r.id), sizeof(r.id));
+    r.cliente = readstring(fs, dcliente);
+    r.producto = readstring(fs, dproducto);
+    fs.read (reinterpret_cast<char *>(&r.valor), sizeof(r.valor));
+    return fs;
+}
 
-    cout<<"Vector de 5 elementos"<<endl;
-    mostrarvec(vec5,dim5);
-    cout<<"Reverso"<<endl;
-    revertir (vec5, dim5);
-    mostrarvec(vec5,dim5);
-    cout<<"----------------------------------"<<endl;
-    cout<<"Vector de 10 elementos"<<endl;
-    mostrarvec(vec10,dim10);
-    cout<<"Reverso"<<endl;
-    revertir (vec10, dim10);
-    mostrarvec(vec10,dim10);
-    cout<<"----------------------------------"<<endl;
-    cout<<"Matriz"<<endl;
-    mostrarmat(matriz,dim5);
-    cout<<"Transpuesta"<<endl;
-    mtranspuesta (matriz, dim5);
+ostream &operator << (ostream &os, Registro &r){
+    os << r.id << "\t"  << setw(dcliente) <<  r.cliente << "\t" << setw(dproducto) << r.producto << "\t"   << r.valor;
+    return os;
+}
+
+int crit (Registro a, Registro b){
+    if (a.cliente == b.cliente) 
+        return a.producto.compare(b.producto);
+    else
+        return a.cliente < b.cliente ? -1 : 1;
+}
+
+template<typename T>
+void limpiarLista(Nodo<T> *&lista) {
+    while (lista != nullptr) {
+        pop(lista);
+    }
+}
+
+void limpiarMemoria(Nodo<Registro> *&lista, Nodo<Registro> *&listaclts) {
+    limpiarLista(lista);
+    limpiarLista(listaclts);
+}
+
+int main () {
+    int opc;
+    int cliente;
+    int prod;
+    Registro datos;
+    Registro clts;
+    Despacho dcho;
+    Nodo<Registro> *lista = nullptr;
+    Nodo<Registro> *listaclts = nullptr;
+    fstream arch;   
+
+    do {
+    cout << "INGRESE UNA OPCION" << endl;
+    cout << "1: Leer Datos" << endl;
+    cout << "2: Mostrar" << endl;
+    cout << "3: Despachar" << endl;
+    cout << "4: Salir" << endl;
+    cin >> opc;
+
+    switch (opc){
+        case 1:
+               arch.open("Datos.bin", ios::in | ios::binary);
+                if(!arch) {
+                    cout << "Error al abrir el archivo" << endl;
+                    return -1;
+                 }
+
+                while(arch >> datos) {
+                    cout << datos << endl;
+                    clts.id = datos.id;
+                    clts.cliente = datos.cliente;
+                    clts.producto = datos.producto;
+                    clts.valor = datos.valor;
+                    listaclts = insertar_unico (clts, lista, crit); 
+                }
+
+                arch.close();
+                break;
+
+        case 2:
+                cout <<"ID  Cliente     Producto      Valor "<<endl;
+                cout <<"============================================"<<endl;                
+                mostrar (listaclts);
+                break;
+
+        case 3:
+                cout <<"Ingresar cliente: "<<endl;
+                if (cin>>cliente){
+                    cout << "Ingresar pedido: "<<endl;
+
+                } else {
+                    cout << "No se encuentra ese cliente"<<endl;
+                }
+                break;   
+
+        case 4:
+                limpiarMemoria(lista, listaclts);
+                break; 
+
+        default: 
+                cout << "Opcion no valida" << endl;                         
+    }
+    } while (opc != 4);
 
     return 0;
-}
-
-void revertir (int v[], int dim){
-        int aux;
-    for (int i=0;i<dim/2;i++){ 
-        aux=v[i];
-        v[i]=v[dim-1-i];
-        v[dim-1-i]=aux;
-    }
-}
-
-void mostrarvec(int vec[], int dim)
-{
-	for (int i = 0; i < dim; ++i)
-		cout << vec[i] << '\t';
-    cout << endl;
-}
-
-void mostrarmat(int m[][5], int dfil)
-{
-        const int dcol = 5; // solo por prolijidad
-
-        for (int i = 0; i < dfil; ++i) {
-                for (int j = 0; j < dcol; ++j)
-                        cout << m[i][j] << '\t';
-                cout << endl;
-        }
-
-}
-
-void mtranspuesta (int m[][5], int filas){
-    const int cols {5};
-    for (int i=0;i<filas;++i){
-        for (int j=0;j<cols;++j)
-        cout << m[j][i] << '\t';
-        cout << endl;
-    }
 }
